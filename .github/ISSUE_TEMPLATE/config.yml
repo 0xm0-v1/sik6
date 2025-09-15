@@ -1,0 +1,16 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Labels Usage
+    url: https://github.com/0xm0-v1/sik6/blob/main/docs/conventions/labels.md
+    about: Read the doc before contributing and submitting.
+
+template_choices:
+  - name: Bug Report
+    description: To signal a bug or unexpected behavior
+    filename: bug-report-template.md
+  - name: Issue Ticket
+    description: Standard ticket for various requests or issues
+    filename: issue-ticket-template.md
+  - name: User Story
+    description: To create a user story (functionality, use case)
+    filename: user-story-template.md
