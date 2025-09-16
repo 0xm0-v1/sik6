@@ -37,8 +37,9 @@ Each commit must follow this structure:\
    - `perf`: performance improvements  
    - `test`: adding or updating tests  
    - `chore`: build process or auxiliary tool changes  
+   - `design`: design related 
 
-3. **Scope**  
+3. **Example of Scope**  
    #### Backend
 - `api`: REST/GraphQL endpoints, controllers  
 - `auth`: authentication, authorization, session handling  

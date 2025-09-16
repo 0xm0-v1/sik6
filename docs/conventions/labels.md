@@ -11,6 +11,12 @@ Each label has a clear purpose to ensure consistent communication across contrib
 
 ---
 
+## design
+**Description:** Visual and UX/UI work such as mockups, prototypes, or style guides.
+**Use when:** A task involves product look, feel, or user experience before/alongside development.
+
+---
+
 ## documentation
 **Description:** Improvements or additions to documentation.  
 **Use when:** Updating guides, fixing typos, or creating new documentation.
