@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -e
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+. "$ROOT_DIR/.husky/project-env"
+exec node "$ROOT_DIR/scripts/prepare-commit-msg.mjs" "$1" "$2" "$3"
