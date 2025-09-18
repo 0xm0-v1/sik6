@@ -9,15 +9,16 @@ The goal is to ensure **clear traceability**, **consistency** in Git history, an
 ## Format
 Each commit must follow this structure:\
 `
-[SIK6-<num>] <type>(<scope>): <short, imperative message>
+[SIK6-<num>] <type>(<scope>): <short, imperative message> #<ref>
 `
 
 
 ### Details:
 - **[SIK6-<num>]**: project ticket ID (`SIK6` is constant, `<num>` is the ticket number).
-- **type**: the nature of the change
-- **scope** *(optional)*: the module, file, or component affected
-- **message**: a short description written in the imperative mood
+- **type**: the nature of the change.
+- **scope** *(optional)*: the module, file, or component affected.
+- **message**: a short description written in the imperative mood.
+- **ref**: short ID reference of the issue.
 
 
 ---
