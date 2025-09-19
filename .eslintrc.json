@@ -17,9 +17,13 @@
     {
       "files": ["*.ts"],
       "parser": "@typescript-eslint/parser",
-      "plugins": ["@angular-eslint"],
+      "plugins": ["@angular-eslint", "@typescript-eslint"],
       "rules": {
-        "no-unused-vars": "error",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["error", {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }],
         "no-console": "warn"
       }
     },
