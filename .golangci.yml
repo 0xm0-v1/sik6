@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - unused
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - node_modules
+    - dist
+    - tmp
+
+issues:
+  exclude-use-default: false

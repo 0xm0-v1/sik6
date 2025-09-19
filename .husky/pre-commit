@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(git rev-parse --show-toplevel)/.husky/project-env"
+
+echo "🔎 Running linters..."
+
+# Backend (Go)
+make lint
+BACKEND_STATUS=$?
+
+# Frontend (Angular/TS)
+npm run lint
+FRONTEND_STATUS=$?
+
+if [ $BACKEND_STATUS -ne 0 ] || [ $FRONTEND_STATUS -ne 0 ]; then
+  echo "❌ Linting failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "✅ All lint checks passed!"

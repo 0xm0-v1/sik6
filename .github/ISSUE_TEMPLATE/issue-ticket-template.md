@@ -21,9 +21,14 @@ assignees: 0xm0-v1
 - **Ticket goal / purpose:**  
 - **Context or problem statement:** 
 - **Points to cover (list items, e.g., volumes, constraints, assumptions…):**
+``` bash
+- coverage here
+``` 
 
 ### Deliverable
 - **Expected file / doc / output (e.g., `docs/.../needs.md`):**
+Clear linkage to child tickets:
+- #
 - **Expected sections (e.g., *Introduction, Functional Needs, Constraints*):**   
 - **Format or size (e.g., 1 page, diagram, table, etc.):**
 

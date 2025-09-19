@@ -1,0 +1,67 @@
+# golangci-lint Reference Configuration
+# -------------------------------------
+# This file is for documentation and team onboarding.
+# The actual configuration used by the tool is in `.golangci.yml`.
+
+version: "2"
+
+# Linters configuration
+# ---------------------
+# Enable or disable specific linters.
+# Recommended minimal set for new projects:
+# - govet: basic checks (printf formatting, struct field alignment, etc.)
+# - staticcheck: advanced analysis, best practices, bug prevention
+# - unused: detect unused vars, funcs, imports
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - unused
+  # Example: disable a noisy linter
+  # disable:
+  #   - gocyclo   # function complexity checker
+
+# Run configuration
+# -----------------
+# Options for controlling how analysis runs.
+run:
+  timeout: 5m     # Maximum runtime for the whole analysis
+  tests: true     # Include test files (*_test.go) in linting
+  skip-dirs:
+    - vendor      # External dependencies (Go modules vendored)
+    - node_modules  # Frontend dependencies (if frontend is inside repo)
+    - dist        # Frontend build output
+    - tmp         # Temporary files
+  # Example: skip files by pattern
+  # skip-files:
+  #   - ".*\\.gen\\.go"  # ignore generated files ending with .gen.go
+
+# Issues configuration
+# --------------------
+# Control how issues are reported.
+issues:
+  exclude-use-default: false   # Keep default exclude rules enabled
+  # Example: ignore specific issues in some paths
+  # exclude-rules:
+  #   - path: _test\.go
+  #     linters:
+  #       - unused   # allow unused functions in test files
+
+# Output configuration
+# --------------------
+# How issues are shown.
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  # Example formats: line-number, json, checkstyle
+
+# Severity configuration
+# ----------------------
+# Customize severity levels if needed.
+# Default: errors block CI, warnings are shown but do not fail.
+# severity:
+#   rules:
+#     - linters:
+#         - staticcheck
+#       severity: warning

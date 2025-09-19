@@ -1,10 +1,6 @@
 # Commit Conventions 
-
-## Purpose
 This document defines the commit conventions to follow for the **sik6** project.  
 The goal is to ensure **clear traceability**, **consistency** in Git history, and to **enable automation** (changelog, release, CI/CD).
-
----
 
 ## Format
 Each commit must follow this structure:\
@@ -19,9 +15,6 @@ Each commit must follow this structure:\
 - **scope** *(optional)*: the module, file, or component affected.
 - **message**: a short description written in the imperative mood.
 - **ref**: short ID reference of the issue.
-
-
----
 
 ## Rules
 
@@ -78,7 +71,24 @@ Each commit must follow this structure:\
    - Keep it short and descriptive.  
    - Use the imperative mood: *"add"*, *"fix"*, *"update"* instead of *"added"*, *"fixed"*, *"updated"*.
 
----
+## Hooks Enforcement
+
+To ensure commit conventions are respected consistently, Git hooks are configured with **Husky**.
+
+### Prepare-commit-msg
+- Automatically injects the correct **ticket prefix** (`[SIK6-<num>]`) into the commit message template.  
+- This ensures contributors don’t forget to include the ticket ID.  
+- Developers can then focus on writing the commit `type(scope): message #ref`.
+
+### Commit-msg
+- Validates the final commit message format against the defined conventions.  
+- If the message does not match the required pattern, the commit is **blocked** until corrected.  
+- This guarantees that all commits are tied to a valid ticket and follow the structure:
+
+### Usage
+```bash
+git commit
+```
 
 ## Why this matters
 
