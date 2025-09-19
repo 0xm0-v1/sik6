@@ -7,15 +7,31 @@
       "extends": [
         "eslint:recommended",
         "plugin:@angular-eslint/recommended",
-        "plugin:@typescript-eslint/recommended"
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
       ],
       "rules": {
         "no-unused-vars": "off",
-        "@typescript-eslint/no-unused-vars": ["error", {
-          "argsIgnorePattern": "^_",
-          "varsIgnorePattern": "^_"
-        }],
-        "no-console": "warn"
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_"
+          }
+        ],
+        "no-console": "warn",
+
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/consistent-type-imports": "warn",
+        "@typescript-eslint/no-misused-promises": "off",
+
+        "eqeqeq": ["error", "smart"],
+        "curly": ["error", "all"],
+        "prefer-const": "error",
+        "no-return-await": "warn",
+
+        "@angular-eslint/no-empty-lifecycle-method": "warn",
+        "@angular-eslint/use-pipe-transform-interface": "warn"
       }
     },
     {

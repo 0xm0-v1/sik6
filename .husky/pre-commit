@@ -1,19 +1,37 @@
 #!/usr/bin/env sh
 . "$(git rev-parse --show-toplevel)/.husky/project-env"
 
-echo "🔎 Running linters..."
-
-# Backend (Go)
-make lint
-BACKEND_STATUS=$?
-
-# Frontend (Angular/TS)
-npm run lint
-FRONTEND_STATUS=$?
-
-if [ $BACKEND_STATUS -ne 0 ] || [ $FRONTEND_STATUS -ne 0 ]; then
-  echo "❌ Linting failed. Fix errors before committing."
+echo "▶ Running formatters (lint-staged for FE)…"
+npx lint-staged || {
+  echo "❌ lint-staged failed. Fix formatting before committing."
   exit 1
+}
+
+echo "▶ Running gofumpt on staged Go files…"
+GO_FILES=$(git diff --name-only --cached -- '*.go')
+if [ -n "$GO_FILES" ]; then
+  command -v gofumpt >/dev/null 2>&1 || {
+    echo "⚠️ gofumpt not found. Install it with: go install mvdan.cc/gofumpt@latest"
+    exit 1
+  }
+  echo "$GO_FILES" | xargs gofumpt -w || {
+    echo "❌ gofumpt failed."
+    exit 1
+  }
+  # re-add formatted files
+  echo "$GO_FILES" | xargs git add
 fi
 
-echo "✅ All lint checks passed!"
+echo "▶ Running Go lints…"
+make lint || {
+  echo "❌ Go linting failed."
+  exit 1
+}
+
+echo "▶ Running ESLint…"
+npm run lint || {
+  echo "❌ ESLint failed."
+  exit 1
+}
+
+echo "✅ Pre-commit checks passed."

@@ -6,12 +6,23 @@
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
     "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
+    "lint-staged": "16.1.6",
+    "prettier": "3.6.2",
     "typescript": "^5.9.2"
   },
   "scripts": {
     "prepare": "husky",
     "lint": "eslint . --ext .ts,.html --no-error-on-unmatched-pattern",
-    "lint:fix": "eslint . --ext .ts,.html --fix"
+    "lint:fix": "eslint . --ext .ts,.html --fix",
+    "format": "npm run format:fe",
+    "format:fe": "prettier \"**/*.{ts,html,scss,css,json,md}\" --write --ignore-unknown",
+    "format:check": "prettier \"**/*.{ts,html,scss,css,json,md}\" --check --ignore-unknown"
+  },
+  "lint-staged": {
+    "*.{ts,html,scss,css,json,md}": [
+      "prettier --write --ignore-unknown"
+    ]
   }
 }
