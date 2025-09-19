@@ -1,8 +1,17 @@
 {
   "devDependencies": {
-    "husky": "^9.1.7"
+    "@angular-eslint/eslint-plugin": "^20.3.0",
+    "@angular-eslint/eslint-plugin-template": "^20.3.0",
+    "@angular-eslint/template-parser": "^20.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "typescript": "^5.9.2"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint": "eslint . --ext .ts,.html --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint . --ext .ts,.html --fix"
   }
 }

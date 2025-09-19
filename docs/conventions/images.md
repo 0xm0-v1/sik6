@@ -3,7 +3,6 @@
 This guide defines how to use images in our web project.  
 It covers formats, sizes, and usage rules to ensure **performance, quality, and compatibility**.
 
----
 
 ## Image Formats
 
@@ -16,8 +15,6 @@ It covers formats, sizes, and usage rules to ensure **performance, quality, and 
 | **JPG** | Photos when legacy support is required | Use progressive compression. Deprecated in most new use cases. |
 
 > **Default format: WebP**, with fallback to PNG/JPG if legacy support is critical.
-
----
 
 ## Responsive Images
 
@@ -52,3 +49,4 @@ Always provide multiple resolutions and let the browser pick:
 | **Hero images** | Prefer WebP/AVIF with `srcset` | Enable responsive loading |
 | **Accessibility** | Always include **meaningful alt text** | SEO + screen readers |
 
+_This system ensures that images are lightweight, responsive, and accessible, reducing load times and improving the overall user experience while maintaining compatibility across modern browsers._

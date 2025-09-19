@@ -1,2 +1,22 @@
-#Deps
-node_modules
+# -------------------------
+# Node / Angular
+# -------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -------------------------
+# Go
+# -------------------------
+*.exe
+*.test
+*.out
+
+# -------------------------
+# IDEs & OS
+# -------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
