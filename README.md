@@ -8,15 +8,15 @@
   <img src="https://img.shields.io/badge/PostgreSQL-17.6-336791?logo=postgresql&logoColor=white" alt="Postgres Badge" />
 </h3>
 
-<h4 align="center">
+<p align="center">
     <strong>🍴 sik6</strong> is an application designed to simplify everyday meal preparation.<br/> 
     It suggests quick and tailored ideas to help those who often lack inspiration.<br/>
     The project aims to provide a functional base for personalized meal suggestions  
     and to evolve into a <em>modern community hub</em> for sharing and enriching the experience.<br/>
-    In short: a tool built to save time and centralize culinary inspiration from around the world.
-</h4>
+    <strong>In short</strong>: a tool built to save time and centralize culinary inspiration from around the world.
+</p>
 
-# 📖 Table of Contents
+## 📖 Table of Contents
 
 1. [Quick Start](#-quick-start)
 2. [Contributing](#-contributing)
