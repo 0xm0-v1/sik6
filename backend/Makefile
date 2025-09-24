@@ -8,4 +8,4 @@ lint:
 
 # Format Go
 format:
-	gofumpt -w .
+	gofumpt -l -w .
