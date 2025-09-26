@@ -1,35 +1,38 @@
 #!/usr/bin/env sh
-. "$(git rev-parse --show-toplevel)/.husky/project-env"
+
+set -eu
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+FRONTEND_DIR="$REPO_ROOT/frontend"
 
 echo "▶ Running formatters (lint-staged for FE)…"
-npx lint-staged || {
+npx --yes lint-staged --cwd "$FRONTEND_DIR" || {
   echo "❌ lint-staged failed. Fix formatting before committing."
   exit 1
 }
 
 echo "▶ Running gofumpt on staged Go files…"
-GO_FILES=$(git diff --name-only --cached -- '*.go')
-if [ -n "$GO_FILES" ]; then
-  command -v gofumpt >/dev/null 2>&1 || {
-    echo "⚠️ gofumpt not found. Install it with: go install mvdan.cc/gofumpt@latest"
+GO_FILES="$(git diff --name-only --cached -- 'backend/**/*.go' || true)"
+if [ -n "${GO_FILES:-}" ]; then
+  if ! command -v gofumpt >/dev/null 2>&1; then
+    echo "⚠️ gofumpt not found. Install with: go install mvdan.cc/gofumpt@latest"
     exit 1
-  }
-  echo "$GO_FILES" | xargs gofumpt -w || {
-    echo "❌ gofumpt failed."
-    exit 1
-  }
-  # re-add formatted files
-  echo "$GO_FILES" | xargs git add
+  fi
+  echo "$GO_FILES" | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    gofumpt -w "$REPO_ROOT/$f" || exit 1
+    git add "$f"
+  done
 fi
 
 echo "▶ Running Go lints…"
-make lint || {
+make -C backend lint || {
   echo "❌ Go linting failed."
   exit 1
 }
 
 echo "▶ Running ESLint…"
-npm run lint || {
+npm --prefix "$FRONTEND_DIR" run lint || {
   echo "❌ ESLint failed."
   exit 1
 }
