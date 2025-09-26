@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/0xm0-v1/sik6/internal/config"
 	"github.com/0xm0-v1/sik6/internal/health"
+	"github.com/0xm0-v1/sik6/internal/hello"
 	"github.com/0xm0-v1/sik6/internal/httpserver"
+	"github.com/0xm0-v1/sik6/internal/root"
 )
 
 func main() {
@@ -21,6 +24,10 @@ func main() {
 	mux := httpserver.NewRouter(
 		health.NewLivenessHandler(),
 		health.NewReadinessHandler(checker),
+		map[string]http.Handler{
+			"/":          root.NewRootHandler(),
+			"GET /hello": hello.NewHelloHandler(),
+		},
 	)
 
 	if err := httpserver.Run(context.Background(), cfg, mux); err != nil {
