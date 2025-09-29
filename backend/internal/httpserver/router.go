@@ -1,7 +1,11 @@
 // internal/httpserver/router.go
 package httpserver
 
-import "net/http"
+import (
+	"net/http"
+
+	httpx "github.com/0xm0-v1/sik6/internal/http/transport"
+)
 
 // NewRouter builds and returns the application's router.
 // Accept handlers as http.Handler (not http.HandlerFunc).
@@ -10,13 +14,5 @@ func NewRouter(
 	readyz http.Handler,
 	extra map[string]http.Handler,
 ) *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.Handle("/livez", livez)
-	mux.Handle("/readyz", readyz)
-
-	for pattern, h := range extra {
-		mux.Handle(pattern, h)
-	}
-
-	return mux
+	return httpx.BuildRoutes(livez, readyz, extra)
 }

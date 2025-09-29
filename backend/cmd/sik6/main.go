@@ -3,13 +3,10 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 
+	"github.com/0xm0-v1/sik6/internal/app"
 	"github.com/0xm0-v1/sik6/internal/config"
-	"github.com/0xm0-v1/sik6/internal/health"
-	"github.com/0xm0-v1/sik6/internal/hello"
 	"github.com/0xm0-v1/sik6/internal/httpserver"
-	"github.com/0xm0-v1/sik6/internal/root"
 )
 
 func main() {
@@ -19,18 +16,9 @@ func main() {
 	cfg := config.New()
 	log.Printf("env loaded successfully")
 
-	checker := func(ctx context.Context) error { return nil }
+	handler := app.NewHTTPHandler(cfg)
 
-	mux := httpserver.NewRouter(
-		health.NewLivenessHandler(),
-		health.NewReadinessHandler(checker),
-		map[string]http.Handler{
-			"/":          root.NewRootHandler(),
-			"GET /hello": hello.NewHelloHandler(),
-		},
-	)
-
-	if err := httpserver.Run(context.Background(), cfg, mux); err != nil {
+	if err := httpserver.Run(context.Background(), cfg, handler); err != nil {
 		log.Fatalf("application run error: %v", err)
 	}
 }
