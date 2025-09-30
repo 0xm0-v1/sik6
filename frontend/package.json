@@ -12,7 +12,9 @@
     "lint:check": "eslint . --ext .ts,.html --no-error-on-unmatched-pattern",
     "format": "npm run format:fe",
     "format:fe": "prettier \"**/*.{ts,html,scss,css,json,md}\" --write --ignore-unknown",
-    "format:check": "prettier \"**/*.{ts,html,scss,css,json,md}\" --check --ignore-unknown"
+    "format:check": "prettier \"**/*.{ts,html,scss,css,json,md}\" --check --ignore-unknown",
+    "docker:build": "docker compose build frontend",
+    "docker:init": "docker compose up frontend"
   },
   "lint-staged": {
     "*.{ts,html,scss,css,json,md}": [

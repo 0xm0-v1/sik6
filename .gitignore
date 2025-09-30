@@ -12,6 +12,7 @@ yarn-error.log*
 *.exe
 *.test
 *.out
+tmp
 
 # -------------------------
 # IDEs & OS

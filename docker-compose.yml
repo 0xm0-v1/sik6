@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sik6-backend-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    environment:
+      - CGO_ENABLED=0                      
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: sik6-frontend:dev         
+    container_name: sik6-frontend-dev
+    working_dir: /app
+    command: sh -c "npm run start -- --host 0.0.0.0 --proxy-config src/proxy.conf.json"
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules            
+    environment:
+      - CHOKIDAR_USEPOLLING=1        
