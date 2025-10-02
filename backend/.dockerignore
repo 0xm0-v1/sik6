@@ -1,5 +1,4 @@
 .git
-Dockerfile
 Makefile
 README.md
 *.log

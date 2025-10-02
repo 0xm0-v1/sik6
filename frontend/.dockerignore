@@ -47,8 +47,6 @@ Thumbs.db
 # ================================
 # Docker & local orchestration
 # ================================
-Dockerfile
-Dockerfile.*
 .dockerignore
 docker-compose.yml
 docker-compose*.yml

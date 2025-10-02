@@ -6,6 +6,8 @@ import (
 	"github.com/rs/cors"
 )
 
+// CORSConfig defines the allowed origins, methods, headers, and credentials
+// for configuring Cross-Origin Resource Sharing (CORS).
 type CORSConfig struct {
 	AllowedOrigins   []string
 	AllowedMethods   []string
@@ -14,6 +16,8 @@ type CORSConfig struct {
 	AllowCredentials bool
 }
 
+// CORS creates a Middleware that applies CORS settings to HTTP requests
+// according to the provided configuration.
 func CORS(cfg CORSConfig) Middleware {
 	opts := cors.Options{
 		AllowedOrigins:   defaultIfEmpty(cfg.AllowedOrigins, []string{"http://localhost:4200"}),
@@ -29,6 +33,7 @@ func CORS(cfg CORSConfig) Middleware {
 	}
 }
 
+// defaultIfEmpty returns the default slice if the provided one is empty.
 func defaultIfEmpty(v, def []string) []string {
 	if len(v) == 0 {
 		return def
