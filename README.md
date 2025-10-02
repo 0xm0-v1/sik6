@@ -5,7 +5,7 @@
 <h3 align="center">
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white" alt="Go Badge" />
   <img src="https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white" alt="Angular Badge" />
-  <img src="https://img.shields.io/badge/PostgreSQL-17.6-336791?logo=postgresql&logoColor=white" alt="Postgres Badge" />
+  <img src="https://img.shields.io/badge/PostgreSQL-18-336791?logo=postgresql&logoColor=white" alt="Postgres Badge" />
 </h3>
 
 <p align="center">
@@ -30,7 +30,7 @@
 
 - [Go 1.25](https://go.dev/dl/)
 - [Angular 20](https://angular.dev/installation)
-- [PostgreSQL 17.6](https://www.postgresql.org/download/)
+- [PostgreSQL 18](https://www.postgresql.org/download/)
 
 > And now you can get the Repository 👇
 
