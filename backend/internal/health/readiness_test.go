@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/0xm0-v1/sik6/internal/health"
+	healthhttp "github.com/0xm0-v1/sik6/internal/health/transport/http"
 )
 
 type envelopeReadyz struct {
@@ -37,8 +38,6 @@ func TestNewReadinessHandler(t *testing.T) {
 		{"GET_not_ready", http.MethodGet, fail, http.StatusServiceUnavailable, http.StatusServiceUnavailable, true},
 		{"HEAD_ready", http.MethodHead, ok, http.StatusOK, 0, false},
 		{"POST_method_not_allowed", http.MethodPost, ok, http.StatusMethodNotAllowed, 0, false},
-		// If your implementation treats nil checker as OK, keep this case.
-		// Otherwise remove it or set checker to `ok`.
 		{"GET_nil_checker_defaults_ok", http.MethodGet, nil, http.StatusOK, http.StatusOK, true},
 	}
 
@@ -47,12 +46,11 @@ func TestNewReadinessHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// If your production code does NOT allow nil, guard here or drop the case.
 			chk := tc.checker
 			if chk == nil {
 				chk = ok
 			}
-			h := health.NewReadinessHandler(chk) // http.Handler
+			h := healthhttp.NewHandlers(chk).Readiness
 
 			req := httptest.NewRequest(tc.method, "/readyz", nil)
 			rec := httptest.NewRecorder()
@@ -66,7 +64,6 @@ func TestNewReadinessHandler(t *testing.T) {
 				t.Fatalf("status: got %d want %d", res.StatusCode, tc.wantStatus)
 			}
 
-			// For 405, the Allow header should be present.
 			if tc.method == http.MethodPost && res.Header.Get("Allow") == "" {
 				t.Fatalf("missing Allow header on 405")
 			}
@@ -82,12 +79,8 @@ func TestNewReadinessHandler(t *testing.T) {
 				if got.Status == "" {
 					t.Fatalf("missing status field")
 				}
-				// In your handlers, status code is mirrored in the HTTP status;
-				// if you also include it in data, assert it here. Otherwise, just
-				// check HTTP status (already done above).
 				_ = got
 			} else if tc.method == http.MethodHead {
-				// HEAD must have no body.
 				if b, _ := io.ReadAll(res.Body); len(b) != 0 {
 					t.Fatalf("HEAD should have empty body, got %d bytes", len(b))
 				}

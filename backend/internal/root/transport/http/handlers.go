@@ -1,5 +1,4 @@
-// internal/root/root.go
-package root
+package roothttp
 
 import (
 	"net/http"
@@ -7,16 +6,18 @@ import (
 	"github.com/0xm0-v1/sik6/internal/http/response"
 )
 
-type rootPayload struct {
-	Message string `json:"message"`
-	response.Meta
+type Handlers struct {
+	Root http.Handler
 }
 
-func NewRootHandler() http.Handler {
-	guard := response.MethodGuard(http.MethodGet)
+func NewHandlers() Handlers {
+	guard := response.MethodGuard(http.MethodGet, http.MethodHead)
 
 	h := response.HeadAware(func(r *http.Request) (int, any) {
-		payload := rootPayload{
+		payload := struct {
+			Message string        `json:"message"`
+			Meta    response.Meta `json:"meta"`
+		}{
 			Message: "Welcome to the Root URL",
 			Meta:    response.NewMeta("api", "root"),
 		}
@@ -27,5 +28,5 @@ func NewRootHandler() http.Handler {
 		}
 	})
 
-	return guard(h)
+	return Handlers{Root: guard(h)}
 }

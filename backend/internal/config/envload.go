@@ -8,12 +8,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// LoadDevDotEnv loads the .env.development file when ENV=dev.
+// LoadDevDotEnv loads the .env.development file when ENV is unset or set to dev.
 // The lookup walks up from the working directory (useful for go run) and
 // falls back to the executable location for packaged binaries.
 func LoadDevDotEnv() error {
-	if os.Getenv("ENV") != "dev" {
+	env := os.Getenv("ENV")
+	if env != "" && env != "dev" {
 		return nil
+	}
+
+	if env == "" {
+		// Default to dev so downstream code knows we are in development mode.
+		_ = os.Setenv("ENV", "dev")
 	}
 
 	path, err := locateEnvFile(".env.development")

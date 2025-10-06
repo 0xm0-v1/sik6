@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0xm0-v1/sik6/internal/health"
+	healthhttp "github.com/0xm0-v1/sik6/internal/health/transport/http"
 )
 
 type envelopeLivez struct {
@@ -21,7 +21,7 @@ type envelopeLivez struct {
 func TestNewLivenessHandler(t *testing.T) {
 	t.Parallel()
 
-	h := health.NewLivenessHandler() // http.Handler
+	h := healthhttp.NewHandlers(nil).Liveness // http.Handler
 
 	cases := []struct {
 		name       string
