@@ -7,13 +7,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/0xm0-v1/sik6/internal/config"
 )
 
 // Run starts the HTTP server, waits for an interrupt, and performs a graceful shutdown.
 func Run(ctx context.Context, cfg *config.Config, handler http.Handler) error {
-	srv := NewServer(cfg, handler)
+	// Derive a context canceled by SIGINT/SIGTERM before constructing the server.
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	srv := NewServer(ctx, cfg, handler)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -22,11 +27,7 @@ func Run(ctx context.Context, cfg *config.Config, handler http.Handler) error {
 		}
 	}()
 
-	log.Printf("server starting... On port: %d", cfg.Port)
-
-	// Derive a context canceled by SIGINT/SIGTERM.
-	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
-	defer stop()
+	log.Printf("server starting on port %d", cfg.Port)
 
 	select {
 	case <-ctx.Done():

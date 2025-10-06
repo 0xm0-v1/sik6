@@ -14,8 +14,9 @@ import (
 
 // NewHTTPHandler constructs the main HTTP handler for the application.
 // It configures liveness and readiness endpoints, the root handler,
-// Middleware such as CORS is applied to the resulting handler.
+// and applies middleware such as CORS to the resulting handler.
 func NewHTTPHandler(cfg *config.Config) stdhttp.Handler {
+	// TODO: replace the stubbed checker with real dependency checks (database, cache, etc.).
 	checker := func(ctx context.Context) error { return nil }
 
 	mux := httpserver.NewRouter(

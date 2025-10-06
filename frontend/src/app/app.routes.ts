@@ -1,4 +1,4 @@
 import type { Routes } from '@angular/router';
-import { Root } from './root/root';
+import { RootComponent } from './root/root.component';
 
-export const routes: Routes = [{ path: '', component: Root }];
+export const routes: Routes = [{ path: '', component: RootComponent }];

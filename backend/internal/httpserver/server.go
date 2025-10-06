@@ -18,7 +18,11 @@ type Server struct {
 }
 
 // NewServer builds a configured http.Server with timeouts.
-func NewServer(cfg *config.Config, handler http.Handler) *Server {
+func NewServer(ctx context.Context, cfg *config.Config, handler http.Handler) *Server {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	return &Server{
 		srv: &http.Server{
 			Addr:              cfg.Addr(),
@@ -28,7 +32,7 @@ func NewServer(cfg *config.Config, handler http.Handler) *Server {
 			IdleTimeout:       cfg.IdleTimeout,
 			ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 			BaseContext: func(net.Listener) context.Context {
-				return context.Background()
+				return ctx
 			},
 		},
 	}
