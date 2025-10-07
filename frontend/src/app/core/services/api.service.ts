@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { catchError, map, throwError } from 'rxjs';
-import type { ApiEnvelope, RootData } from '../models/api.models';
+import type { ApiEnvelope, RecipeListData, RootData } from '../models/api.models';
 import { ApiError } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
@@ -43,6 +43,28 @@ export class ApiService {
 
   getRoot(): Observable<RootData> {
     return this.get<RootData>('/');
+  }
+
+  getRecipes(params?: { limit?: number; offset?: number }): Observable<RecipeListData> {
+    const query = this.buildQuery(params);
+    return this.get<RecipeListData>(`/recipes${query}`);
+  }
+
+  private buildQuery(params?: { limit?: number; offset?: number }): string {
+    if (!params) {
+      return '';
+    }
+
+    const searchParams = new URLSearchParams();
+    if (params.limit != null) {
+      searchParams.set('limit', `${params.limit}`);
+    }
+    if (params.offset != null) {
+      searchParams.set('offset', `${params.offset}`);
+    }
+
+    const query = searchParams.toString();
+    return query ? `?${query}` : '';
   }
 
   private buildUrl(endpoint: string): string {

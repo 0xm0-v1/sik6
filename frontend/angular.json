@@ -37,6 +37,7 @@
               "outputHashing": "all"
             },
             "development": {
+              "outputMode": "static",
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true

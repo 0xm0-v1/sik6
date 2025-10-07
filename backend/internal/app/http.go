@@ -46,9 +46,18 @@ func NewHTTPHandler(cfg *config.Config, deps Dependencies) stdhttp.Handler {
 		},
 	)
 
-	allowed := strings.Split(config.GetEnv("CORS_ALLOWED_ORIGINS", "http://localhost:4200"), ",")
-	for i := range allowed {
-		allowed[i] = strings.TrimSpace(allowed[i])
+	const defaultCORSOrigin = "http://localhost:4200"
+
+	rawOrigins := strings.Split(config.GetEnv("CORS_ALLOWED_ORIGINS", defaultCORSOrigin), ",")
+	allowed := make([]string, 0, len(rawOrigins))
+	for _, origin := range rawOrigins {
+		origin = strings.TrimSpace(origin)
+		if origin != "" {
+			allowed = append(allowed, origin)
+		}
+	}
+	if len(allowed) == 0 {
+		allowed = []string{defaultCORSOrigin}
 	}
 
 	return middleware.Chain(mux,

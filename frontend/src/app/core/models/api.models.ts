@@ -9,6 +9,15 @@ export interface ApiEnvelope<T = unknown> {
 }
 
 /**
+ * Shared metadata emitted by the backend for observability.
+ */
+export interface ApiMeta {
+  component: string;
+  type: string;
+  time: string;
+}
+
+/**
  * Custom API error for better handling
  */
 export class ApiError extends Error {
@@ -27,19 +36,38 @@ export class ApiError extends Error {
  */
 export interface ApiData {
   message: string;
-  component: string;
-  type: string;
-  time: string;
+  meta: ApiMeta;
 }
 
 /**
  * Specific type for root route response (/)
  */
 export interface RootData extends ApiData {
-  type: 'root';
+  meta: ApiMeta & { type: 'root' };
 }
 
 /**
  * Typed envelope types for each endpoint
  */
 export type RootResponse = ApiEnvelope<RootData>;
+
+/**
+ * Recipe entity mirrors the backend payload.
+ */
+export interface Recipe {
+  id: string;
+  recipe_name: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+/**
+ * Response payload returned by GET /recipes.
+ */
+export interface RecipeListData {
+  recipes: Recipe[];
+  meta: ApiMeta;
+}
+
+export type RecipeListResponse = ApiEnvelope<RecipeListData>;

@@ -1,1 +1,21 @@
-<p>{{ message() }}</p>
+<section>
+  <p>{{ message() }}</p>
+</section>
+<p>Mon texte statique</p>
+<section>
+  @if (recipesLoading()) {
+    <p>Loading recipes…</p>
+  } @else if (recipesError()) {
+    <p class="error">{{ recipesError() }}</p>
+  } @else {
+    <ul>
+      @for (recipe of recipes(); track recipe.id) {
+        <li>
+          <strong>{{ recipe.recipe_name }}</strong>
+        </li>
+      } @empty {
+        <li><em>No recipes yet.</em></li>
+      }
+    </ul>
+  }
+</section>

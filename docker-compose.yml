@@ -3,8 +3,10 @@ services:
     image: postgres:16-alpine
     container_name: sik6-db-dev
     restart: unless-stopped
-    env_file:
-      - .env.development
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5433:5432"
     volumes:

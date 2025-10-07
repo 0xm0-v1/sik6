@@ -11,6 +11,7 @@ import (
 	"github.com/0xm0-v1/sik6/internal/http/response"
 	"github.com/0xm0-v1/sik6/internal/recipe"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Handlers struct {
@@ -41,6 +42,12 @@ const (
 	bearerPrefix     = "Bearer "
 )
 
+const metaComponent = "api"
+
+func meta(kind string) response.Meta {
+	return response.NewMeta(metaComponent, kind)
+}
+
 func (h handler) collection(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:
@@ -58,7 +65,7 @@ func (h handler) collection(w http.ResponseWriter, r *http.Request) {
 func (h handler) resource(w http.ResponseWriter, r *http.Request) {
 	id, ok := extractID(r.URL.Path)
 	if !ok {
-		writeError(w, http.StatusNotFound, "resource not found")
+		writeError(w, http.StatusNotFound, "resource not found", "recipes")
 		return
 	}
 
@@ -86,7 +93,7 @@ func (h handler) listResponder(r *http.Request) (int, any) {
 		return http.StatusBadRequest, response.Envelope{
 			Status: "error",
 			Error:  err.Error(),
-			Data:   response.NewMeta("api", "recipes:list"),
+			Data:   meta("recipes:list"),
 		}
 	}
 
@@ -95,7 +102,7 @@ func (h handler) listResponder(r *http.Request) (int, any) {
 		return http.StatusInternalServerError, response.Envelope{
 			Status: "error",
 			Error:  "could not list recipes",
-			Data:   response.NewMeta("api", "recipes:list"),
+			Data:   meta("recipes:list"),
 		}
 	}
 
@@ -104,7 +111,7 @@ func (h handler) listResponder(r *http.Request) (int, any) {
 		Meta    response.Meta    `json:"meta"`
 	}{
 		Recipes: items,
-		Meta:    response.NewMeta("api", "recipes:list"),
+		Meta:    meta("recipes:list"),
 	}
 
 	return http.StatusOK, response.Envelope{
@@ -121,13 +128,13 @@ func (h handler) getResponder(id string) response.JSONResponder {
 				return http.StatusNotFound, response.Envelope{
 					Status: "error",
 					Error:  "recipe not found",
-					Data:   response.NewMeta("api", "recipes:get"),
+					Data:   meta("recipes:get"),
 				}
 			}
 			return http.StatusInternalServerError, response.Envelope{
 				Status: "error",
 				Error:  "could not fetch recipe",
-				Data:   response.NewMeta("api", "recipes:get"),
+				Data:   meta("recipes:get"),
 			}
 		}
 
@@ -136,7 +143,7 @@ func (h handler) getResponder(id string) response.JSONResponder {
 			Meta   response.Meta  `json:"meta"`
 		}{
 			Recipe: item,
-			Meta:   response.NewMeta("api", "recipes:get"),
+			Meta:   meta("recipes:get"),
 		}
 
 		return http.StatusOK, response.Envelope{
@@ -152,29 +159,33 @@ func (h handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadRequest, err.Error(), "recipes:create")
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	if len(req.Name) == 0 {
-		writeError(w, http.StatusBadRequest, "recipe name is required")
+		writeError(w, http.StatusBadRequest, "recipe name is required", "recipes:create")
 		return
 	}
 	if len(req.Name) > 200 {
-		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer")
+		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer", "recipes:create")
 		return
 	}
 
 	id, err := h.repo.Create(r.Context(), req.Name)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not create recipe")
+		if isUniqueViolation(err) {
+			writeError(w, http.StatusConflict, "recipe name already exists", "recipes:create")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "could not create recipe", "recipes:create")
 		return
 	}
 
 	item, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not fetch created recipe")
+		writeError(w, http.StatusInternalServerError, "could not fetch created recipe", "recipes:create")
 		return
 	}
 
@@ -183,7 +194,7 @@ func (h handler) create(w http.ResponseWriter, r *http.Request) {
 		Meta   response.Meta  `json:"meta"`
 	}{
 		Recipe: item,
-		Meta:   response.NewMeta("api", "recipes:create"),
+		Meta:   meta("recipes:create"),
 	}
 
 	response.WriteJSON(w, http.StatusCreated, response.Envelope{
@@ -198,32 +209,36 @@ func (h handler) rename(w http.ResponseWriter, r *http.Request, id string) {
 	}
 
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadRequest, err.Error(), "recipes:rename")
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	if len(req.Name) == 0 {
-		writeError(w, http.StatusBadRequest, "recipe name is required")
+		writeError(w, http.StatusBadRequest, "recipe name is required", "recipes:rename")
 		return
 	}
 	if len(req.Name) > 200 {
-		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer")
+		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer", "recipes:rename")
 		return
 	}
 
 	if err := h.repo.Rename(r.Context(), id, req.Name); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "recipe not found")
+			writeError(w, http.StatusNotFound, "recipe not found", "recipes:rename")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "could not rename recipe")
+		if isUniqueViolation(err) {
+			writeError(w, http.StatusConflict, "recipe name already exists", "recipes:rename")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "could not rename recipe", "recipes:rename")
 		return
 	}
 
 	item, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not fetch recipe")
+		writeError(w, http.StatusInternalServerError, "could not fetch recipe", "recipes:rename")
 		return
 	}
 
@@ -232,7 +247,7 @@ func (h handler) rename(w http.ResponseWriter, r *http.Request, id string) {
 		Meta   response.Meta  `json:"meta"`
 	}{
 		Recipe: item,
-		Meta:   response.NewMeta("api", "recipes:rename"),
+		Meta:   meta("recipes:rename"),
 	}
 
 	response.WriteJSON(w, http.StatusOK, response.Envelope{
@@ -244,14 +259,21 @@ func (h handler) rename(w http.ResponseWriter, r *http.Request, id string) {
 func (h handler) softDelete(w http.ResponseWriter, r *http.Request, id string) {
 	if err := h.repo.SoftDelete(r.Context(), id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "recipe not found")
+			writeError(w, http.StatusNotFound, "recipe not found", "recipes:delete")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "could not delete recipe")
+		writeError(w, http.StatusInternalServerError, "could not delete recipe", "recipes:delete")
 		return
 	}
 
-	response.WriteNoBody(w, http.StatusNoContent)
+	response.WriteJSON(w, http.StatusOK, response.Envelope{
+		Status: "ok",
+		Data: struct {
+			Meta response.Meta `json:"meta"`
+		}{
+			Meta: meta("recipes:delete"),
+		},
+	})
 }
 
 func (h handler) authorize(w http.ResponseWriter, r *http.Request) bool {
@@ -261,13 +283,13 @@ func (h handler) authorize(w http.ResponseWriter, r *http.Request) bool {
 
 	header := strings.TrimSpace(r.Header.Get("Authorization"))
 	if !strings.HasPrefix(header, bearerPrefix) {
-		writeError(w, http.StatusUnauthorized, "missing or invalid token")
+		writeError(w, http.StatusUnauthorized, "missing or invalid token", "recipes:auth")
 		return false
 	}
 
 	candidate := strings.TrimSpace(header[len(bearerPrefix):])
 	if subtle.ConstantTimeCompare([]byte(candidate), []byte(h.token)) != 1 {
-		writeError(w, http.StatusUnauthorized, "missing or invalid token")
+		writeError(w, http.StatusUnauthorized, "missing or invalid token", "recipes:auth")
 		return false
 	}
 
@@ -323,10 +345,18 @@ func decodeJSON(r *http.Request, dst any) error {
 	return nil
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
+func writeError(w http.ResponseWriter, status int, message, kind string) {
 	response.WriteJSON(w, status, response.Envelope{
 		Status: "error",
 		Error:  message,
-		Data:   response.NewMeta("api", "recipes"),
+		Data:   meta(kind),
 	})
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
+	}
+	return false
 }
