@@ -1,10 +1,34 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"log"
 
-// Testing golangci-lint
+	"github.com/0xm0-v1/sik6/internal/app"
+	"github.com/0xm0-v1/sik6/internal/config"
+	"github.com/0xm0-v1/sik6/internal/httpserver"
+	"github.com/0xm0-v1/sik6/internal/storage/postgres"
+	recipepg "github.com/0xm0-v1/sik6/internal/storage/postgres/repository/recipe"
+)
+
 func main() {
-	msg := "Hello sik6"
-	fmt.Printf("The number is: %d\n", 42)
-	fmt.Println(msg)
+	if err := config.LoadDevDotEnv(); err != nil {
+		log.Printf("warning: could not load .env.development: %v", err)
+	}
+
+	cfg := config.New()
+	ctx := context.Background()
+
+	pool, err := postgres.Connect(ctx)
+	if err != nil {
+		log.Fatalf("database connect error: %v", err)
+	}
+	defer pool.Close()
+
+	recipeRepo := recipepg.NewRecipeRepository(pool)
+	handler := app.NewHTTPHandler(cfg, app.Dependencies{RecipeRepository: recipeRepo})
+
+	if err := httpserver.Run(ctx, cfg, handler); err != nil {
+		log.Fatalf("application run error: %v", err)
+	}
 }

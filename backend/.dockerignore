@@ -1,0 +1,6 @@
+.git
+Makefile
+README.md
+*.log
+bin/
+tmp/

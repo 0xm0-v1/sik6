@@ -12,6 +12,7 @@ yarn-error.log*
 *.exe
 *.test
 *.out
+tmp
 
 # -------------------------
 # IDEs & OS
@@ -20,3 +21,6 @@ yarn-error.log*
 .idea/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+!*.example

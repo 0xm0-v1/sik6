@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="static/img/logos/svg/256/nobg/black.svg" alt="sik6 logo" width="150"/>
+  <img src="frontend/static/img/logos/svg/256/nobg/black.svg" alt="sik6 logo" width="150"/>
 </div>
 
 <h3 align="center">
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white" alt="Go Badge" />
   <img src="https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white" alt="Angular Badge" />
-  <img src="https://img.shields.io/badge/PostgreSQL-17.6-336791?logo=postgresql&logoColor=white" alt="Postgres Badge" />
+  <img src="https://img.shields.io/badge/PostgreSQL-18-336791?logo=postgresql&logoColor=white" alt="Postgres Badge" />
 </h3>
 
 <p align="center">
@@ -30,13 +30,37 @@
 
 - [Go 1.25](https://go.dev/dl/)
 - [Angular 20](https://angular.dev/installation)
-- [PostgreSQL 17.6](https://www.postgresql.org/download/)
+- [PostgreSQL 18](https://www.postgresql.org/download/)
 
 > And now you can get the Repository 👇
 
 ```bash
 git clone https://github.com/0xm0-v1/sik6
 ```
+
+### Alternative with Docker 
+
+1. Install Docker with the Compose plugin (24.x or newer).
+2. Copy `.env.example` to `.env.development` and fill in the values. Set a strong `API_TOKEN` (clients must send `Authorization: Bearer <token>` for POST/PATCH/DELETE requests).
+3. From the repository root:
+   ```bash
+   cd backend
+   make up
+   ```
+4. Wait for the healthchecks (`make ps` shows the three services as `healthy`).
+5. Verify:
+   ```bash
+   curl -i http://localhost:8080/livez
+   curl -i http://localhost:8080/readyz
+   # Angular dev server
+   open http://localhost:4200/
+   ```
+6. Useful commands:
+   - `make down` — stop and remove the containers
+   - `make logs` — follow the stack logs
+   - `make up-detach` — run the stack in the background
+
+> The containers mount the local source tree (`backend/`, `frontend/`) so code changes are picked up immediately (Go is reloaded by Air, Angular runs in watch mode).
 
 ## 🔗 Useful Links
 
