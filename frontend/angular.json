@@ -59,6 +59,23 @@
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "karmaConfig": "karma.conf.cjs",
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles.scss"],
+            "scripts": []
+          },
+          "configurations": {
+            "ci": {
+              "watch": false,
+              "browsers": "ChromeHeadlessCI"
+            }
+          }
         }
       }
     }
