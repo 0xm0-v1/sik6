@@ -79,6 +79,21 @@ type SmokeConfig struct {
 	Timeout    time.Duration
 }
 
+// LoadSmoke builds SmokeConfig from environment variables without validating
+// unrelated configuration sections.
+func LoadSmoke() (*SmokeConfig, error) {
+	smoke := SmokeConfig{
+		RecipesURL: GetEnv("SMOKE_RECIPES_URL", defaultRecipesURL),
+		Expected:   append([]string(nil), defaultRecipes...),
+		Timeout:    GetEnvDuration("SMOKE_TIMEOUT", defaultSmokeTimeout),
+	}
+	if expected := splitAndClean(GetEnv("SMOKE_EXPECTED_RECIPES", "")); len(expected) > 0 {
+		smoke.Expected = expected
+	}
+
+	return &smoke, nil
+}
+
 // Load builds Config from environment variables and validates critical fields.
 func Load() (*Config, error) {
 	env := strings.TrimSpace(GetEnv("ENV", ""))
@@ -147,13 +162,9 @@ func Load() (*Config, error) {
 		db.DSN = dsn
 	}
 
-	smoke := SmokeConfig{
-		RecipesURL: GetEnv("SMOKE_RECIPES_URL", defaultRecipesURL),
-		Expected:   append([]string(nil), defaultRecipes...),
-		Timeout:    GetEnvDuration("SMOKE_TIMEOUT", defaultSmokeTimeout),
-	}
-	if expected := splitAndClean(GetEnv("SMOKE_EXPECTED_RECIPES", "")); len(expected) > 0 {
-		smoke.Expected = expected
+	smoke, err := LoadSmoke()
+	if err != nil {
+		return nil, fmt.Errorf("config: load smoke: %w", err)
 	}
 
 	return &Config{
@@ -162,7 +173,7 @@ func Load() (*Config, error) {
 		Database:    db,
 		API:         api,
 		CORS:        cors,
-		Smoke:       smoke,
+		Smoke:       *smoke,
 	}, nil
 }
 

@@ -16,17 +16,17 @@ import (
 
 // Run executes the CI smoke checks for the recipes endpoint.
 func Run(args []string) error {
-	cfg, err := config.Load()
+	smokeCfg, err := config.LoadSmoke()
 	if err != nil {
-		return fmt.Errorf("load config: %w", err)
+		return fmt.Errorf("load smoke config: %w", err)
 	}
 
 	fs := flag.NewFlagSet("cismoke", flag.ContinueOnError)
 
-	defaultExpected := strings.Join(cfg.Smoke.Expected, ",")
-	url := fs.String("url", cfg.Smoke.RecipesURL, "recipes endpoint URL to validate")
+	defaultExpected := strings.Join(smokeCfg.Expected, ",")
+	url := fs.String("url", smokeCfg.RecipesURL, "recipes endpoint URL to validate")
 	expectedRaw := fs.String("expected", defaultExpected, "comma-separated list of recipe names that must be present")
-	timeout := fs.Duration("timeout", cfg.Smoke.Timeout, "HTTP request timeout")
+	timeout := fs.Duration("timeout", smokeCfg.Timeout, "HTTP request timeout")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("parse flags: %w", err)
@@ -34,7 +34,7 @@ func Run(args []string) error {
 
 	expected := shared.SanitizeList(strings.Split(*expectedRaw, ","))
 	if len(expected) == 0 {
-		expected = append([]string(nil), cfg.Smoke.Expected...)
+		expected = append([]string(nil), smokeCfg.Expected...)
 	}
 
 	client := &http.Client{Timeout: *timeout}
