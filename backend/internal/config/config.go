@@ -144,9 +144,18 @@ func Load() (*Config, error) {
 		HealthCheckPeriod: GetEnvDuration("DB_HEALTH_CHECK_PERIOD", 0),
 	}
 	if db.DSN == "" {
-		host := strings.TrimSpace(GetEnv("DB_HOST", ""))
-		user := strings.TrimSpace(GetEnv("DB_USER", ""))
-		name := strings.TrimSpace(GetEnv("DB_NAME", ""))
+		host := strings.TrimSpace(GetEnv("DB_HOST", "localhost"))
+		if host == "" {
+			host = "localhost"
+		}
+		user := strings.TrimSpace(GetEnv("DB_USER", "postgres"))
+		if user == "" {
+			user = "postgres"
+		}
+		name := strings.TrimSpace(GetEnv("DB_NAME", "postgres"))
+		if name == "" {
+			name = "postgres"
+		}
 		password := strings.TrimSpace(GetEnv("DB_PASSWORD", ""))
 		sslMode := strings.TrimSpace(GetEnv("DB_SSLMODE", "disable"))
 		port := GetEnvInt("DB_PORT", 5432)
