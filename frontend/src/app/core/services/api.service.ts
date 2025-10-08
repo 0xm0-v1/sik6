@@ -1,74 +1,76 @@
-import { HttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+  type HttpParameterCodec,
+} from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { catchError, map, throwError } from 'rxjs';
 import type { ApiEnvelope, RecipeListData, RootData } from '../models/api.models';
 import { ApiError } from '../models/api.models';
-import { environment } from '../../../environments/environment';
+import { APP_ENV_CONFIG } from '../config/app-config';
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiPrefix = environment.apiUrl ?? '/api';
-
-  private get<T>(endpoint: string): Observable<T> {
-    return this.http.get<ApiEnvelope<T>>(this.buildUrl(endpoint)).pipe(
-      map((envelope) => this.extractData(envelope)),
-      catchError((error) => this.handleError(error)),
-    );
-  }
-
-  private post<T>(endpoint: string, body: unknown): Observable<T> {
-    return this.http.post<ApiEnvelope<T>>(this.buildUrl(endpoint), body).pipe(
-      map((envelope) => this.extractData(envelope)),
-      catchError((error) => this.handleError(error)),
-    );
-  }
-
-  private put<T>(endpoint: string, body: unknown): Observable<T> {
-    return this.http.put<ApiEnvelope<T>>(this.buildUrl(endpoint), body).pipe(
-      map((envelope) => this.extractData(envelope)),
-      catchError((error) => this.handleError(error)),
-    );
-  }
-
-  private delete<T>(endpoint: string): Observable<T> {
-    return this.http.delete<ApiEnvelope<T>>(this.buildUrl(endpoint)).pipe(
-      map((envelope) => this.extractData(envelope)),
-      catchError((error) => this.handleError(error)),
-    );
-  }
+  private readonly envConfig = inject(APP_ENV_CONFIG);
 
   getRoot(): Observable<RootData> {
-    return this.get<RootData>('/');
+    return this.request<RootData>('GET', '/');
   }
 
   getRecipes(params?: { limit?: number; offset?: number }): Observable<RecipeListData> {
-    const query = this.buildQuery(params);
-    return this.get<RecipeListData>(`/recipes${query}`);
+    return this.request<RecipeListData>('GET', '/recipes', { params });
   }
 
-  private buildQuery(params?: { limit?: number; offset?: number }): string {
-    if (!params) {
-      return '';
+  private request<T>(
+    method: HttpMethod,
+    endpoint: string,
+    options: {
+      body?: unknown;
+      params?: Record<string, string | number | boolean | undefined | null>;
+    } = {},
+  ): Observable<T> {
+    const url = this.buildUrl(endpoint);
+    const requestOptions: { body?: unknown; params?: HttpParams } = {};
+
+    if (options.body !== undefined) {
+      requestOptions.body = options.body;
     }
 
-    const searchParams = new URLSearchParams();
-    if (params.limit != null) {
-      searchParams.set('limit', `${params.limit}`);
-    }
-    if (params.offset != null) {
-      searchParams.set('offset', `${params.offset}`);
+    if (options.params) {
+      requestOptions.params = this.buildParams(options.params);
     }
 
-    const query = searchParams.toString();
-    return query ? `?${query}` : '';
+    return this.http.request<ApiEnvelope<T>>(method, url, requestOptions).pipe(
+      map((envelope) => this.extractData(envelope)),
+      catchError((error) => this.handleError(error)),
+    );
+  }
+
+  private buildParams(
+    params: Record<string, string | number | boolean | undefined | null>,
+  ): HttpParams {
+    let httpParams = new HttpParams({ encoder: new StrictHttpParamEncoder() });
+
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+      httpParams = httpParams.set(key, String(value));
+    }
+
+    return httpParams;
   }
 
   private buildUrl(endpoint: string): string {
-    return `${this.apiPrefix}${endpoint}`;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${this.envConfig.apiUrl}${normalizedEndpoint}`;
   }
 
   private extractData<T>(envelope: ApiEnvelope<T>): T {
@@ -86,9 +88,8 @@ export class ApiService {
   private handleError(error: unknown): Observable<never> {
     let apiError: ApiError;
 
-    if (error && typeof error === 'object' && 'status' in error) {
-      const httpError = error as { status: number; message?: string };
-      const statusCode = httpError.status;
+    if (error instanceof HttpErrorResponse) {
+      const statusCode = error.status;
       const errorMessages: Record<number, string> = {
         400: 'Invalid request',
         401: 'Not authorised',
@@ -98,8 +99,8 @@ export class ApiService {
         503: 'Service unavailable',
       };
 
-      const message = errorMessages[statusCode] || httpError.message || `HTTP error ${statusCode}`;
-      apiError = new ApiError(message, statusCode, error);
+      const message = errorMessages[statusCode] || error.message || `HTTP error ${statusCode}`;
+      apiError = new ApiError(message, statusCode, error.error ?? error);
     } else if (error instanceof Error) {
       apiError = new ApiError(error.message, undefined, error);
     } else {
@@ -107,5 +108,26 @@ export class ApiService {
     }
 
     return throwError(() => apiError);
+  }
+}
+
+/**
+ * HttpParams encoder that avoids automatic plus/space conversion.
+ */
+class StrictHttpParamEncoder implements HttpParameterCodec {
+  encodeKey(key: string): string {
+    return encodeURIComponent(key);
+  }
+
+  encodeValue(value: string): string {
+    return encodeURIComponent(value);
+  }
+
+  decodeKey(key: string): string {
+    return decodeURIComponent(key);
+  }
+
+  decodeValue(value: string): string {
+    return decodeURIComponent(value);
   }
 }

@@ -16,8 +16,7 @@ import (
 
 func TestSoftDeleteRespondsWithEnvelope(t *testing.T) {
 	h := handler{
-		repo:  stubRecipeRepo{},
-		token: "",
+		svc: recipe.NewService(stubRecipeRepo{}),
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/recipes/a1b2c3", nil)
@@ -47,8 +46,7 @@ func TestSoftDeleteRespondsWithEnvelope(t *testing.T) {
 
 func TestSoftDeleteNotFound(t *testing.T) {
 	h := handler{
-		repo:  stubRecipeRepo{softDeleteErr: pgx.ErrNoRows},
-		token: "",
+		svc: recipe.NewService(stubRecipeRepo{softDeleteErr: pgx.ErrNoRows}),
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/recipes/missing", nil)

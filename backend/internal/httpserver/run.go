@@ -13,7 +13,7 @@ import (
 )
 
 // Run starts the HTTP server, waits for an interrupt, and performs a graceful shutdown.
-func Run(ctx context.Context, cfg *config.Config, handler http.Handler) error {
+func Run(ctx context.Context, cfg config.ServerConfig, handler http.Handler) error {
 	// Derive a context canceled by SIGINT/SIGTERM before constructing the server.
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

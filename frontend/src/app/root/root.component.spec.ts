@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { PLATFORM_ID, provideZonelessChangeDetection } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
@@ -40,6 +40,7 @@ describe('RootComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ApiService, useClass: ApiServiceStub },
+        { provide: PLATFORM_ID, useValue: 'browser' },
       ],
     }).compileComponents();
 
@@ -50,5 +51,10 @@ describe('RootComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should render the root message', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Hello');
   });
 });

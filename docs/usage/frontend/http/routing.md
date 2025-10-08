@@ -1,108 +1,117 @@
-# HTTP Routing Guide
+# HTTP Routing & Data Access Guide
 
-This guide explains how frontend routes are organised and how to surface a new backend resource in the Angular application.
+This guide summarises how frontend routes, API calls, and view state are organised in the Angular application.
 
 ## Project Layout
 
 ```
 src/app
   core
-    services/api.service.ts    // centralised HTTP client
-    models/api.models.ts       // shared response envelopes
-  root                         // example feature module
-  app.routes.ts                // top-level router configuration
+    config/app-config.ts        // provides APP_ENV_CONFIG (apiUrl, logging, etc.)
+    services/api.service.ts     // centralised HTTP client
+    adapters/recipe.adapter.ts  // example view-model mapping
+  root
+    root.store.ts               // state container used by the root page
+  app.routes.ts                 // top-level router configuration
 ```
 
-All HTTP calls go through `ApiService`. Components inject it to retrieve data and update their internal `signal` state.
+### Environment config (APP_ENV_CONFIG)
 
-## Expose a New API Call
+Instead of importing `environment` directly, inject the `APP_ENV_CONFIG` token. It exposes a normalised object:
 
-1. **Add typed models**  
-   Extend `src/app/core/models/api.models.ts` with interfaces describing the payload:
+```ts
+const config = inject(APP_ENV_CONFIG);
+console.log(config.apiUrl, config.enableApiLogging);
+```
+
+Override it in tests or feature modules with `provideAppEnvironmentConfig({ apiUrl: 'http://localhost:4200/api' })`.
+
+## Creating a New API Call
+
+1. **Add typed models** in `src/app/core/models/api.models.ts`:
    ```ts
    export interface ExampleListData {
      items: ExampleSummary[];
      meta: ApiMeta;
    }
-
-   export type ExampleListResponse = ApiEnvelope<ExampleListData>;
    ```
 
-2. **Expose a service method**  
-   Implement a thin wrapper in `src/app/core/services/api.service.ts`:
+2. **Expose a service method** using the unified request pipeline:
    ```ts
-   getExamples(): Observable<ExampleListData> {
-     return this.get<ExampleListData>('/examples');
+   // src/app/core/services/api.service.ts
+   getExamples(params?: { limit?: number; offset?: number }): Observable<ExampleListData> {
+     return this.request<ExampleListData>('GET', '/examples', { params });
+   }
+   ```
+   `request(...)` handles URL building, `HttpParams`, and `ApiEnvelope` extraction.
+
+3. **Adapt the payload** when the UI does not consume raw API shapes. Create a small adapter (see `recipe.adapter.ts`) that maps API fields to view models (Date instances, renamed properties, etc.).
+
+## State & Routing Pattern
+
+The frontend favours a lightweight store per feature that manages API calls and exposes signals. The `RootStore` is an example: it loads the welcome message and recipe list, and the component binds to its signals.
+
+### Steps to add a feature route
+
+1. **Generate the component & store**
+   ```bash
+   ng generate component examples/list --standalone
+   ng generate service examples/examples --flat --skip-tests
+   ```
+   Replace the generated service with a store similar to `root.store.ts`, injecting `ApiService` and using `takeUntilDestroyed` for subscriptions.
+
+2. **Use the store in the component**
+   ```ts
+   @Component({
+     selector: 'app-examples-page',
+     imports: [CommonModule],
+     templateUrl: './examples.component.html',
+     styleUrl: './examples.component.scss',
+   })
+   export class ExamplesComponent implements OnInit {
+     private readonly store = inject(ExamplesStore);
+
+     readonly items = this.store.items;
+     readonly loading = this.store.loading;
+     readonly error = this.store.error;
+
+     ngOnInit(): void {
+       this.store.initialize();
+     }
    }
    ```
 
-   The reusable `get/post/put/delete` helpers already normalise `ApiEnvelope` responses and surface `ApiError` instances when the backend returns a failure.
+3. **Register the route** in `src/app/app.routes.ts`:
+   ```ts
+   export const routes: Routes = [
+     { path: '', component: RootComponent },
+     { path: 'examples', loadComponent: () => import('./examples/examples.component').then(m => m.ExamplesComponent) },
+   ];
+   ```
 
-3. **Create the component**
+4. **Template binding**
+   ```html
+   <section class="examples">
+     @if (loading()) {
+       <p>Loading examples...</p>
+     } @else if (error()) {
+       <p class="error">{{ error() }}</p>
+     } @else {
+       <ul>
+         @for (item of items(); track item.id) {
+           <li>{{ item.name }}</li>
+         } @empty {
+           <li><em>No data yet.</em></li>
+         }
+       </ul>
+     }
+   </section>
+   ```
 
-Generate a standalone component (recommended):
-```bash
-ng generate component examples/list --standalone
-```
+Signals are functions, so Angular re-renders automatically when their value changes. Use `@for`/`@if` syntax to avoid importing structural directives.
 
-Use the `ApiService` inside the component:
-```ts
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { ApiService } from '../core/services/api.service';
+## Local API Development
 
-@Component({
-  selector: 'app-examples',
-  templateUrl: './examples.component.html',
-  standalone: true,
-})
-export class ExamplesComponent implements OnInit {
-  private readonly api = inject(ApiService);
-
-  readonly items = signal<ExampleListData | null>(null);
-  readonly error = signal<string | null>(null);
-
-  ngOnInit(): void {
-    this.api.getExamples().subscribe({
-      next: (payload) => this.items.set(payload),
-      error: (err) => this.error.set(err.message),
-    });
-  }
-}
-```
-
-4. **Register the route**
-
-Update `src/app/app.routes.ts`:
-```ts
-import { Routes } from '@angular/router';
-import { RootComponent } from './root/root.component';
-import { ExamplesComponent } from './examples/examples.component';
-
-export const routes: Routes = [
-  { path: '', component: RootComponent },
-  { path: 'examples', component: ExamplesComponent },
-];
-```
-
-5. **Bind data to the view**
-
-Augment the template to consume the signals exposed by the component and handle loading/error states:
-```html
-<section class="examples">
-  <p *ngIf="loading()">Loading…</p>
-
-  <p *ngIf="!loading() && error()" class="error">
-    {{ error() }}
-  </p>
-
-  <ul *ngIf="!loading() && !error()">
-    <li *ngFor="let item of items(); trackBy: trackItem">
-      {{ item.name }}
-    </li>
-  </ul>
-</section>
-```
-
-Signals (`loading`, `error`, `items`) are functions, so Angular re-renders automatically when their value changes. Provide a `trackItem` helper in the component for stable list rendering.
-
-During development, the Angular dev server proxies `/api` requests to the Go backend (`src/proxy.conf.json`). As long as the backend exposes the route through the same envelope, the new page will work without extra plumbing.
+- The Angular dev server proxies `/api` to the Go backend via `src/proxy.conf.json`.
+- Enable extra logging by setting `enableApiLogging` in the environment files or overriding `APP_ENV_CONFIG`.
+- When running tests, provide a stubbed `ApiService` or store and use `provideAppEnvironmentConfig` to point at fixture URLs if needed.

@@ -18,7 +18,7 @@ type Server struct {
 }
 
 // NewServer builds a configured http.Server with timeouts.
-func NewServer(ctx context.Context, cfg *config.Config, handler http.Handler) *Server {
+func NewServer(ctx context.Context, cfg config.ServerConfig, handler http.Handler) *Server {
 	if ctx == nil {
 		ctx = context.Background()
 	}

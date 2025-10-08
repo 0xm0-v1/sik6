@@ -27,9 +27,14 @@ func Run(args []string) error {
 		return fmt.Errorf("parse flags: %w", err)
 	}
 
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
 	ctx := context.Background()
 
-	pool, err := postgres.Connect(ctx)
+	pool, err := postgres.Connect(ctx, cfg.Database)
 	if err != nil {
 		return fmt.Errorf("database connect error: %w", err)
 	}

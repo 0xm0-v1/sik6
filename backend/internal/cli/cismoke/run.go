@@ -8,31 +8,25 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/0xm0-v1/sik6/internal/cli/shared"
 	"github.com/0xm0-v1/sik6/internal/config"
 	"github.com/0xm0-v1/sik6/internal/recipe"
 )
 
-const (
-	defaultRecipesURL = "http://localhost:4200/api/recipes"
-	defaultTimeout    = 10 * time.Second
-)
-
-var defaultExpectedRecipes = []string{
-	"Classic Pancakes",
-	"Spicy Ramen",
-	"Veggie Tacos",
-}
-
 // Run executes the CI smoke checks for the recipes endpoint.
 func Run(args []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
 	fs := flag.NewFlagSet("cismoke", flag.ContinueOnError)
 
-	url := fs.String("url", config.GetEnv("SMOKE_RECIPES_URL", defaultRecipesURL), "recipes endpoint URL to validate")
-	expectedRaw := fs.String("expected", config.GetEnv("SMOKE_EXPECTED_RECIPES", strings.Join(defaultExpectedRecipes, ",")), "comma-separated list of recipe names that must be present")
-	timeout := fs.Duration("timeout", config.GetEnvDuration("SMOKE_TIMEOUT", defaultTimeout), "HTTP request timeout")
+	defaultExpected := strings.Join(cfg.Smoke.Expected, ",")
+	url := fs.String("url", cfg.Smoke.RecipesURL, "recipes endpoint URL to validate")
+	expectedRaw := fs.String("expected", defaultExpected, "comma-separated list of recipe names that must be present")
+	timeout := fs.Duration("timeout", cfg.Smoke.Timeout, "HTTP request timeout")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("parse flags: %w", err)
@@ -40,7 +34,7 @@ func Run(args []string) error {
 
 	expected := shared.SanitizeList(strings.Split(*expectedRaw, ","))
 	if len(expected) == 0 {
-		expected = defaultExpectedRecipes
+		expected = append([]string(nil), cfg.Smoke.Expected...)
 	}
 
 	client := &http.Client{Timeout: *timeout}
