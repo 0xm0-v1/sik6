@@ -23,4 +23,5 @@ tmp
 Thumbs.db
 .env
 .env.*
+!.env.ci
 !*.example
