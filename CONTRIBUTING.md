@@ -15,5 +15,8 @@ All team members are expected to follow these conventions to ensure consistency 
 
 1. Create a branch from `main`.
 2. Implement and test your changes locally.
-3. Commit your changes — pre-commit hooks will automatically enforce linting / formatting and conventions.
+3. Commit your changes – pre-commit hooks will automatically enforce linting / formatting and conventions.
 4. Open a Pull Request for review and approval before merging.
+
+> Adding a brand-new domain (table + API + frontend page)?  
+> Follow the [New Domain Workflow](./docs/new-domain-workflow.md) for a step-by-step checklist with links to detailed guides.

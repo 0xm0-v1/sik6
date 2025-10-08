@@ -17,11 +17,6 @@ func LoadDevDotEnv() error {
 		return nil
 	}
 
-	if env == "" {
-		// Default to dev so downstream code knows we are in development mode.
-		_ = os.Setenv("ENV", "dev")
-	}
-
 	path, err := locateEnvFile(".env.development")
 	if err != nil {
 		return err

@@ -1,6 +1,8 @@
+/* eslint-disable no-console */
+import { inject } from '@angular/core';
 import type { HttpInterceptorFn } from '@angular/common/http';
 import { tap } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { APP_ENV_CONFIG } from '../config/app-config';
 
 /**
  * Global HTTP interceptor for:
@@ -12,14 +14,17 @@ import { environment } from '../../../environments/environment';
  * Configure via environment.enableApiLogging
  */
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
-  if (typeof window !== 'undefined' && environment.enableApiLogging) {
+  const { enableApiLogging } = inject(APP_ENV_CONFIG);
+  const isBrowser = typeof window !== 'undefined';
+
+  if (isBrowser && enableApiLogging) {
     console.log(`[API] ${req.method} ${req.url}`);
   }
 
   return next(req).pipe(
     tap({
       next: (event) => {
-        if (typeof window !== 'undefined' && environment.enableApiLogging) {
+        if (isBrowser && enableApiLogging) {
           if ('status' in event) {
             console.log(`[API] OK ${req.method} ${req.url} - ${event.status}`);
           }

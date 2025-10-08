@@ -2,6 +2,8 @@
 
 This guide explains how to add a new SQL fixture so local runs and CI share the same sample data.
 
+> **Prerequisite:** run the database migrations first (e.g. `make migrate NAME=0001_init.sql` on a fresh volume). Seeding assumes the target tables already exist.
+
 ## 1. Create the SQL file
 
 1. Add a file under `backend/testdata/fixtures`, e.g. `users.sql`.
@@ -15,7 +17,7 @@ This guide explains how to add a new SQL fixture so local runs and CI share the 
    const usersFixture = "users.sql"
 
    func SeedUsers(ctx context.Context, pool *pgxpool.Pool) error {
-   	return Seed(ctx, pool, usersFixture)
+    	return Seed(ctx, pool, usersFixture)
    }
    ```
 2. If the new fixture should become the default, update `internal/cli/dbseed/run.go` (e.g. call `fixtures.SeedUsers`).

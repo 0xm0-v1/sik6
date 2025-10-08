@@ -1,17 +1,24 @@
-<section>
+<section class="root-message">
   <p>{{ message() }}</p>
 </section>
+
 <p>Mon texte statique</p>
-<section>
+
+<section class="recipes">
+  <header class="recipes__header">
+    <h2>Recipes</h2>
+    <button type="button" (click)="refreshRecipes()" [disabled]="recipesLoading()">Refresh</button>
+  </header>
+
   @if (recipesLoading()) {
-    <p>Loading recipes…</p>
+    <p>Loading recipes...</p>
   } @else if (recipesError()) {
     <p class="error">{{ recipesError() }}</p>
   } @else {
     <ul>
       @for (recipe of recipes(); track recipe.id) {
         <li>
-          <strong>{{ recipe.recipe_name }}</strong>
+          <strong>{{ recipe.name }}</strong>
         </li>
       } @empty {
         <li><em>No recipes yet.</em></li>

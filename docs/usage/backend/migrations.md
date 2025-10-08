@@ -1,6 +1,17 @@
-﻿# Database migrations
+# Database migrations
 
 Migrations for the API live in `backend/internal/storage/postgres/migrations`. They are plain SQL files executed manually whenever the schema changes.
+
+## First-time setup (fresh database)
+
+When you start the Docker stack on a brand-new volume (`make up` or `make up-detach` after cleaning images/volumes), the database is empty. Before running any seed command you **must** apply the bootstrap migration so the core tables exist:
+
+```bash
+cd backend
+make migrate NAME=0001_init.sql
+```
+
+Run this once per empty database volume; subsequent schema changes should be applied in chronological order as new migration files are added.
 
 ## Add a new migration
 
@@ -24,4 +35,3 @@ Migrations for the API live in `backend/internal/storage/postgres/migrations`. T
     sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
   ```
 - Avoid renaming migration files once they have been merged: treat them as immutable history.
-

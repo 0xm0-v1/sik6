@@ -1,13 +1,14 @@
 package recipehttp
 
 import (
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/0xm0-v1/sik6/internal/http/middleware"
 	"github.com/0xm0-v1/sik6/internal/http/response"
 	"github.com/0xm0-v1/sik6/internal/recipe"
 	"github.com/jackc/pgx/v5"
@@ -19,11 +20,31 @@ type Handlers struct {
 	Resource   http.Handler
 }
 
-func NewHandlers(repo recipe.Repository, token string) Handlers {
-	h := handler{repo: repo, token: strings.TrimSpace(token)}
+func NewHandlers(svc recipe.Service, token string) Handlers {
+	if svc == nil {
+		svc = recipe.NewService(nil)
+	}
+
+	h := handler{svc: svc}
+	token = strings.TrimSpace(token)
+
+	unauthorized := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusUnauthorized, "missing or invalid token", "recipes:auth")
+	})
 
 	collection := response.MethodGuard(http.MethodGet, http.MethodHead, http.MethodPost)(http.HandlerFunc(h.collection))
+	collection = middleware.Chain(collection, middleware.RequireBearerToken(middleware.BearerConfig{
+		Token:        token,
+		Methods:      []string{http.MethodPost},
+		Unauthorized: unauthorized,
+	}))
+
 	resource := response.MethodGuard(http.MethodGet, http.MethodHead, http.MethodPatch, http.MethodDelete)(http.HandlerFunc(h.resource))
+	resource = middleware.Chain(resource, middleware.RequireBearerToken(middleware.BearerConfig{
+		Token:        token,
+		Methods:      []string{http.MethodPatch, http.MethodDelete},
+		Unauthorized: unauthorized,
+	}))
 
 	return Handlers{
 		Collection: collection,
@@ -32,14 +53,12 @@ func NewHandlers(repo recipe.Repository, token string) Handlers {
 }
 
 type handler struct {
-	repo  recipe.Repository
-	token string
+	svc recipe.Service
 }
 
 const (
 	defaultListLimit = 20
 	maxListLimit     = 100
-	bearerPrefix     = "Bearer "
 )
 
 const metaComponent = "api"
@@ -53,9 +72,6 @@ func (h handler) collection(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet, http.MethodHead:
 		response.HeadAware(h.listResponder).ServeHTTP(w, r)
 	case http.MethodPost:
-		if !h.authorize(w, r) {
-			return
-		}
 		h.create(w, r)
 	default:
 		response.WriteNoBody(w, http.StatusMethodNotAllowed)
@@ -73,14 +89,8 @@ func (h handler) resource(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet, http.MethodHead:
 		response.HeadAware(h.getResponder(id)).ServeHTTP(w, r)
 	case http.MethodPatch:
-		if !h.authorize(w, r) {
-			return
-		}
 		h.rename(w, r, id)
 	case http.MethodDelete:
-		if !h.authorize(w, r) {
-			return
-		}
 		h.softDelete(w, r, id)
 	default:
 		response.WriteNoBody(w, http.StatusMethodNotAllowed)
@@ -97,8 +107,17 @@ func (h handler) listResponder(r *http.Request) (int, any) {
 		}
 	}
 
-	items, err := h.repo.List(r.Context(), limit, offset)
+	items, err := h.svc.List(r.Context(), limit, offset)
 	if err != nil {
+		if errors.Is(err, recipe.ErrRepositoryUnavailable) {
+			log.Printf("recipes:list unavailable: %v", err)
+			return http.StatusInternalServerError, response.Envelope{
+				Status: "error",
+				Error:  "recipe service unavailable",
+				Data:   meta("recipes:list"),
+			}
+		}
+		log.Printf("recipes:list error: %v", err)
 		return http.StatusInternalServerError, response.Envelope{
 			Status: "error",
 			Error:  "could not list recipes",
@@ -122,7 +141,7 @@ func (h handler) listResponder(r *http.Request) (int, any) {
 
 func (h handler) getResponder(id string) response.JSONResponder {
 	return func(r *http.Request) (int, any) {
-		item, err := h.repo.GetByID(r.Context(), id)
+		item, err := h.svc.Get(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return http.StatusNotFound, response.Envelope{
@@ -131,6 +150,15 @@ func (h handler) getResponder(id string) response.JSONResponder {
 					Data:   meta("recipes:get"),
 				}
 			}
+			if errors.Is(err, recipe.ErrRepositoryUnavailable) {
+				log.Printf("recipes:get unavailable id=%s: %v", id, err)
+				return http.StatusInternalServerError, response.Envelope{
+					Status: "error",
+					Error:  "recipe service unavailable",
+					Data:   meta("recipes:get"),
+				}
+			}
+			log.Printf("recipes:get error id=%s: %v", id, err)
 			return http.StatusInternalServerError, response.Envelope{
 				Status: "error",
 				Error:  "could not fetch recipe",
@@ -163,44 +191,22 @@ func (h handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Name = strings.TrimSpace(req.Name)
-	if len(req.Name) == 0 {
-		writeError(w, http.StatusBadRequest, "recipe name is required", "recipes:create")
-		return
-	}
-	if len(req.Name) > 200 {
-		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer", "recipes:create")
+	name, errMsg := normalizeRecipeName(req.Name)
+	if errMsg != "" {
+		writeError(w, http.StatusBadRequest, errMsg, "recipes:create")
 		return
 	}
 
-	id, err := h.repo.Create(r.Context(), req.Name)
-	if err != nil {
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "recipe name already exists", "recipes:create")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "could not create recipe", "recipes:create")
+	item, err := h.svc.Create(r.Context(), name)
+	if h.handleServiceError(w, err, serviceErrorConfig{
+		Kind:            "recipes:create",
+		ConflictMessage: "recipe name already exists",
+		FallbackMessage: "could not create recipe",
+	}) {
 		return
 	}
 
-	item, err := h.repo.GetByID(r.Context(), id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not fetch created recipe", "recipes:create")
-		return
-	}
-
-	payload := struct {
-		Recipe *recipe.Recipe `json:"recipe"`
-		Meta   response.Meta  `json:"meta"`
-	}{
-		Recipe: item,
-		Meta:   meta("recipes:create"),
-	}
-
-	response.WriteJSON(w, http.StatusCreated, response.Envelope{
-		Status: "ok",
-		Data:   payload,
-	})
+	respondWithRecipe(w, http.StatusCreated, item, "recipes:create")
 }
 
 func (h handler) rename(w http.ResponseWriter, r *http.Request, id string) {
@@ -213,56 +219,31 @@ func (h handler) rename(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 
-	req.Name = strings.TrimSpace(req.Name)
-	if len(req.Name) == 0 {
-		writeError(w, http.StatusBadRequest, "recipe name is required", "recipes:rename")
-		return
-	}
-	if len(req.Name) > 200 {
-		writeError(w, http.StatusBadRequest, "recipe name must be 200 characters or fewer", "recipes:rename")
+	name, errMsg := normalizeRecipeName(req.Name)
+	if errMsg != "" {
+		writeError(w, http.StatusBadRequest, errMsg, "recipes:rename")
 		return
 	}
 
-	if err := h.repo.Rename(r.Context(), id, req.Name); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "recipe not found", "recipes:rename")
-			return
-		}
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "recipe name already exists", "recipes:rename")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "could not rename recipe", "recipes:rename")
+	item, err := h.svc.Rename(r.Context(), id, name)
+	if h.handleServiceError(w, err, serviceErrorConfig{
+		Kind:            "recipes:rename",
+		NotFoundMessage: "recipe not found",
+		ConflictMessage: "recipe name already exists",
+		FallbackMessage: "could not rename recipe",
+	}) {
 		return
 	}
 
-	item, err := h.repo.GetByID(r.Context(), id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "could not fetch recipe", "recipes:rename")
-		return
-	}
-
-	payload := struct {
-		Recipe *recipe.Recipe `json:"recipe"`
-		Meta   response.Meta  `json:"meta"`
-	}{
-		Recipe: item,
-		Meta:   meta("recipes:rename"),
-	}
-
-	response.WriteJSON(w, http.StatusOK, response.Envelope{
-		Status: "ok",
-		Data:   payload,
-	})
+	respondWithRecipe(w, http.StatusOK, item, "recipes:rename")
 }
 
 func (h handler) softDelete(w http.ResponseWriter, r *http.Request, id string) {
-	if err := h.repo.SoftDelete(r.Context(), id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "recipe not found", "recipes:delete")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "could not delete recipe", "recipes:delete")
+	if h.handleServiceError(w, h.svc.SoftDelete(r.Context(), id), serviceErrorConfig{
+		Kind:            "recipes:delete",
+		NotFoundMessage: "recipe not found",
+		FallbackMessage: "could not delete recipe",
+	}) {
 		return
 	}
 
@@ -274,26 +255,6 @@ func (h handler) softDelete(w http.ResponseWriter, r *http.Request, id string) {
 			Meta: meta("recipes:delete"),
 		},
 	})
-}
-
-func (h handler) authorize(w http.ResponseWriter, r *http.Request) bool {
-	if h.token == "" {
-		return true
-	}
-
-	header := strings.TrimSpace(r.Header.Get("Authorization"))
-	if !strings.HasPrefix(header, bearerPrefix) {
-		writeError(w, http.StatusUnauthorized, "missing or invalid token", "recipes:auth")
-		return false
-	}
-
-	candidate := strings.TrimSpace(header[len(bearerPrefix):])
-	if subtle.ConstantTimeCompare([]byte(candidate), []byte(h.token)) != 1 {
-		writeError(w, http.StatusUnauthorized, "missing or invalid token", "recipes:auth")
-		return false
-	}
-
-	return true
 }
 
 func extractID(path string) (string, bool) {
@@ -351,6 +312,63 @@ func writeError(w http.ResponseWriter, status int, message, kind string) {
 		Error:  message,
 		Data:   meta(kind),
 	})
+}
+
+func respondWithRecipe(w http.ResponseWriter, status int, item *recipe.Recipe, kind string) {
+	payload := struct {
+		Recipe *recipe.Recipe `json:"recipe"`
+		Meta   response.Meta  `json:"meta"`
+	}{
+		Recipe: item,
+		Meta:   meta(kind),
+	}
+
+	response.WriteJSON(w, status, response.Envelope{
+		Status: "ok",
+		Data:   payload,
+	})
+}
+
+type serviceErrorConfig struct {
+	Kind            string
+	NotFoundMessage string
+	ConflictMessage string
+	FallbackMessage string
+}
+
+func (h handler) handleServiceError(w http.ResponseWriter, err error, cfg serviceErrorConfig) bool {
+	if err == nil {
+		return false
+	}
+
+	log.Printf("recipes handler error kind=%s: %v", cfg.Kind, err)
+
+	switch {
+	case cfg.NotFoundMessage != "" && errors.Is(err, pgx.ErrNoRows):
+		writeError(w, http.StatusNotFound, cfg.NotFoundMessage, cfg.Kind)
+	case cfg.ConflictMessage != "" && isUniqueViolation(err):
+		writeError(w, http.StatusConflict, cfg.ConflictMessage, cfg.Kind)
+	case errors.Is(err, recipe.ErrRepositoryUnavailable):
+		writeError(w, http.StatusInternalServerError, "recipe service unavailable", cfg.Kind)
+	default:
+		msg := cfg.FallbackMessage
+		if msg == "" {
+			msg = "operation failed"
+		}
+		writeError(w, http.StatusInternalServerError, msg, cfg.Kind)
+	}
+	return true
+}
+
+func normalizeRecipeName(raw string) (string, string) {
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", "recipe name is required"
+	}
+	if len(name) > 200 {
+		return "", "recipe name must be 200 characters or fewer"
+	}
+	return name, ""
 }
 
 func isUniqueViolation(err error) bool {
