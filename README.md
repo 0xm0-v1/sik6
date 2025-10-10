@@ -65,6 +65,8 @@ git clone https://github.com/0xm0-v1/sik6
 ## 🔗 Useful Links
 
 - 🎨 [Designs (Figma)](https://www.figma.com/files/team/1304730716403620532/project/127010998/sik6?fuid=1254181321735275578) – UI/UX mockups and design system
+- 📚 [Architecture overview](./docs/architecture-overview.md) – entry point for understanding the backend, frontend, and database layout
+- 🧭 [End-to-end feature workflow](./docs/new-domain-workflow.md) – step-by-step checklist to add a domain across API, DB, and UI
 
 ## 🤝 Contributing
 
